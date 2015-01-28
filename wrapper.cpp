@@ -3,10 +3,7 @@
 #include <stdlib.h>
 
 #include "wrapper.h"
-
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
 
@@ -26,7 +23,7 @@ void* NewDocument(char* string, char** error) {
                 sprintf(msg, "[%lu] %s", offset, "No error.");
                 break;
             case kParseErrorDocumentEmpty:
-                sprintf(msg, "[%lu] %s", offset, "The document is empty. ");
+                sprintf(msg, "[%lu] %s", offset, "The document is empty.");
                 break;
             case kParseErrorDocumentRootNotSingular:
                 sprintf(msg, "[%lu] %s", offset, "The document root must not follow by other values.");

@@ -48,14 +48,13 @@ func convertPath(path []string) *C.struct_Path {
 
 // Constructor by string.
 func New(val string) (*Jog, error) {
-	var cerr **C.char
+	var cerr *C.char
 	cval := C.CString(val)
-
-	doc := C.NewDocument(cval, cerr)
+	doc := C.NewDocument(cval, &cerr)
 	if doc == nil {
-		msg := C.GoString(*cerr)
+		msg := C.GoString(cerr)
 		C.free(unsafe.Pointer(cval))
-		C.free(unsafe.Pointer(*cerr))
+		C.free(unsafe.Pointer(cerr))
 		return nil, errors.New(msg)
 	}
 
@@ -110,7 +109,7 @@ func (j *Jog) GetBool(path ...string) (bool, error) {
 		defer C.free(unsafe.Pointer(pathPtr.keys))
 	}
 
-	bval, err := C.GetInt(j.value, pathPtr)
+	bval, err := C.GetBool(j.value, pathPtr)
 	if err != nil {
 		return false, errors.New(fmt.Sprintf("Could not find bool value at %s", strings.Join(path, "/")))
 	}

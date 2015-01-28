@@ -101,7 +101,7 @@ func TestRootObject(t *testing.T) {
 		TestCase{&[]string{"index"}, uint(0)},
 		TestCase{&[]string{"_id"}, "54c7fff8e3268528239d9cb1"},
 		TestCase{&[]string{"guid"}, "b4940c5c-82ee-4f5e-bd02-f847fe2b9fc6"},
-		//TestCase{&[]string{"isActive"}, true},
+		TestCase{&[]string{"isActive"}, true},
 		TestCase{&[]string{"balance"}, "$1,750.21"},
 		TestCase{&[]string{"registered"}, "2014-10-12T09:38:08 +07:00"},
 		TestCase{&[]string{"latitude"}, float64(-59.816976)},
@@ -118,7 +118,7 @@ func TestNestedObject(t *testing.T) {
 	DoTests(t, GetSample(t), cases)
 }
 
-func TestArray(t *testing.T) {
+func TestNestedArray(t *testing.T) {
 	obj := GetSample(t)
 	tags, err := obj.GetArray("tags")
 	if err != nil {
@@ -131,5 +131,34 @@ func TestArray(t *testing.T) {
 	}
 	for i, friend := range tags {
 		DoTests(t, friend, []TestCase{TestCase{nil, values[i]}})
+	}
+}
+
+func TestNestedArrayObject(t *testing.T) {
+	obj := GetSample(t)
+	friends, err := obj.GetArray("friends")
+	if err != nil {
+		t.Fatalf("Couldn't get nested array: %v\n", err)
+	}
+
+	values := [][]TestCase{
+		[]TestCase{
+			TestCase{&[]string{"id"}, 0},
+			TestCase{&[]string{"name"}, "Case Gross"},
+		},
+		[]TestCase{
+			TestCase{&[]string{"id"}, 1},
+			TestCase{&[]string{"name"}, "Gilbert Rasmussen"},
+		},
+		[]TestCase{
+			TestCase{&[]string{"id"}, 2},
+			TestCase{&[]string{"name"}, "Harris Huff"},
+		},
+	}
+	if len(friends) != len(values) {
+		t.Fatalf("Got length %d, expected %d\n", len(friends), len(values))
+	}
+	for i, v := range values {
+		DoTests(t, friends[i], v)
 	}
 }
