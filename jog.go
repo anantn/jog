@@ -1,6 +1,7 @@
 package jog
 
 // #include <stdlib.h>
+// #include <stdbool.h>
 // #include "wrapper.h"
 import "C"
 
@@ -16,6 +17,18 @@ type Jog struct {
 	clean unsafe.Pointer
 	value unsafe.Pointer
 }
+
+type Type int
+
+const (
+	TypeBool Type = iota
+	TypeNull
+	TypeArray
+	TypeNumber
+	TypeString
+	TypeObject
+	TypeUnknown
+)
 
 // Finalizer to call the Document destructor.
 func cleanupDocument(j *Jog) {
@@ -64,6 +77,22 @@ func New(val string) (*Jog, error) {
 }
 
 // Data Getters.
+func (j *Jog) Get(path ...string) (*Jog, error) {
+	if len(path) == 0 {
+		return j, nil
+	}
+
+	pathPtr := convertPath(path)
+	if pathPtr != nil {
+		defer C.free(unsafe.Pointer(pathPtr.keys))
+	}
+	childval := C.Get(j.value, pathPtr)
+	if childval == nil {
+		return nil, errors.New(fmt.Sprintf("Could not find a child at %s", strings.Join(path, "/")))
+	}
+	return &Jog{nil, childval}, nil
+}
+
 func (j *Jog) GetInt(path ...string) (int, error) {
 	pathPtr := convertPath(path)
 	if pathPtr != nil {
@@ -113,10 +142,7 @@ func (j *Jog) GetBool(path ...string) (bool, error) {
 	if err != nil {
 		return false, errors.New(fmt.Sprintf("Could not find bool value at %s", strings.Join(path, "/")))
 	}
-	if int(bval) == 1 {
-		return true, nil
-	}
-	return false, nil
+	return bool(bval), nil
 }
 
 func (j *Jog) GetString(path ...string) (string, error) {
@@ -132,19 +158,6 @@ func (j *Jog) GetString(path ...string) (string, error) {
 	return C.GoString(strval), nil
 }
 
-func (j *Jog) GetObject(path ...string) (*Jog, error) {
-	pathPtr := convertPath(path)
-	if pathPtr != nil {
-		defer C.free(unsafe.Pointer(pathPtr.keys))
-	}
-
-	objval := C.GetObject(j.value, pathPtr)
-	if objval == nil {
-		return nil, errors.New(fmt.Sprintf("Could not find object value at %s", strings.Join(path, "/")))
-	}
-	return &Jog{nil, objval}, nil
-}
-
 func (j *Jog) GetArray(path ...string) ([]*Jog, error) {
 	pathPtr := convertPath(path)
 	if pathPtr != nil {
@@ -153,11 +166,12 @@ func (j *Jog) GetArray(path ...string) ([]*Jog, error) {
 
 	var arrlen C.size_t
 	arrval := C.GetArray(j.value, pathPtr, &arrlen)
-	length := int(arrlen)
 
 	if arrval == nil {
 		return []*Jog{}, errors.New(fmt.Sprintf("Could not find array value at %s", strings.Join(path, "/")))
 	}
+
+	length := int(arrlen)
 	if length == 0 {
 		return []*Jog{}, nil
 	}
@@ -165,11 +179,70 @@ func (j *Jog) GetArray(path ...string) ([]*Jog, error) {
 	var void unsafe.Pointer
 	ptrSize := unsafe.Sizeof(void)
 
-	array := make([]*Jog, int(arrlen))
+	array := make([]*Jog, length)
 	for i := 0; i < length; i++ {
 		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(unsafe.Pointer(arrval)) + uintptr(i)*ptrSize))
 		array[i] = &Jog{unsafe.Pointer(arrval), *ptr}
 	}
 	runtime.SetFinalizer(&array, cleanupArray)
 	return array, nil
+}
+
+func (j *Jog) GetObject(path ...string) (map[string]*Jog, error) {
+	pathPtr := convertPath(path)
+	if pathPtr != nil {
+		defer C.free(unsafe.Pointer(pathPtr.keys))
+	}
+
+	var keys **C.char
+	var memlen C.size_t
+	objval := C.GetObject(j.value, pathPtr, &memlen, &keys)
+	if objval == nil {
+		return nil, errors.New(fmt.Sprintf("Could not find object value at %s", strings.Join(path, "/")))
+	}
+
+	length := int(memlen)
+	if length == 0 {
+		return map[string]*Jog{}, nil
+	}
+
+	var void unsafe.Pointer
+	ptrSize := unsafe.Sizeof(void)
+	charSize := unsafe.Sizeof(keys)
+	members := make(map[string]*Jog, length)
+	for i := 0; i < length; i++ {
+		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(unsafe.Pointer(objval)) + uintptr(i)*ptrSize))
+		keyPtr := (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(keys)) + uintptr(i)*charSize))
+		keyVal := C.GoString(*keyPtr)
+		members[keyVal] = &Jog{nil, *ptr}
+		C.free(unsafe.Pointer(*keyPtr))
+	}
+	C.free(unsafe.Pointer(objval))
+	C.free(unsafe.Pointer(keys))
+	return members, nil
+}
+
+func (j *Jog) Type(path ...string) Type {
+	pathPtr := convertPath(path)
+	if pathPtr != nil {
+		defer C.free(unsafe.Pointer(pathPtr.keys))
+	}
+
+	ct := C.Type(j.value, pathPtr)
+	switch C.GoString(ct) {
+	case "BOOL":
+		return TypeBool
+	case "NULL":
+		return TypeNull
+	case "ARRAY":
+		return TypeArray
+	case "STRING":
+		return TypeString
+	case "OBJECT":
+		return TypeObject
+	case "NUMBER":
+		return TypeNumber
+	}
+
+	return TypeUnknown
 }

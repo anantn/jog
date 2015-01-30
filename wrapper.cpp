@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "wrapper.h"
 #include "rapidjson/document.h"
@@ -91,7 +92,7 @@ void DeleteDocument(void *value) {
     delete d;
 }
 
-Value* descend(void* value, Path* path) {
+void* Get(void* value, Path* path) {
     if (!value) {
         return NULL;
     }
@@ -109,12 +110,11 @@ Value* descend(void* value, Path* path) {
         }
         val = &(itr->value);
     }
-
     return val;
 }
 
 int GetInt(void* value, Path* path) {
-    Value* val = descend(value, path);
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsInt()) {
         errno = EINVAL;
         return -1;
@@ -122,20 +122,17 @@ int GetInt(void* value, Path* path) {
     return val->GetInt();
 }
 
-int GetBool(void* value, Path* path) {
-    Value* val = descend(value, path);
+bool GetBool(void* value, Path* path) {
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsBool()) {
         errno = EINVAL;
         return -1;
     }
-    if (val->GetBool()) {
-        return 1;
-    }
-    return 0;
+    return val->GetBool();
 }
 
 double GetDouble(void* value, Path* path) {
-    Value* val = descend(value, path);
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsDouble()) {
         errno = EINVAL;
         return -1;
@@ -144,7 +141,7 @@ double GetDouble(void* value, Path* path) {
 }
 
 unsigned int GetUInt(void* value, Path* path) {
-    Value* val = descend(value, path);
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsUint()) {
         errno = EINVAL;
         return -1;
@@ -152,16 +149,8 @@ unsigned int GetUInt(void* value, Path* path) {
     return val->GetUint();
 }
 
-void* GetObject(void* value, Path* path) {
-    Value* val = descend(value, path);
-    if (!val || !val->IsObject()) {
-        return NULL;
-    }
-    return val;
-}
-
 const char* GetString(void* value, Path* path) {
-    Value* val = descend(value, path);
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsString()) {
         return NULL;
     }
@@ -169,7 +158,7 @@ const char* GetString(void* value, Path* path) {
 }
 
 void** GetArray(void* value, Path* path, size_t* length) {
-    Value* val = descend(value, path);
+    Value* val = (Value*) Get(value, path);
     if (!val || !val->IsArray()) {
         return NULL;
     }
@@ -183,4 +172,50 @@ void** GetArray(void* value, Path* path, size_t* length) {
 
     *length = len;
     return array;
+}
+
+void** GetObject(void* value, Path* path, size_t* length, char*** keys) {
+    Value* val = (Value*) Get(value, path);
+    if (!val || !val->IsObject()) {
+        return NULL;
+    }
+
+    SizeType len = val->MemberCount();
+    char** names = (char**) malloc(sizeof(char *) * len);
+    void** members = (void**) malloc(sizeof(void *) * len);
+
+    Value::MemberIterator itr = val->MemberBegin();
+    for (int i = 0; itr != val->MemberEnd(); i++, itr++) {
+        const char* memberName = itr->name.GetString();
+        names[i] = (char*) malloc(sizeof(char) * strlen(memberName));
+        strcpy(names[i], memberName);
+        members[i] = (void*) &(itr->value);
+    }
+
+    *length = len;
+    *keys = names;
+    return members;
+}
+
+const char* Type(void *value, Path* path) {
+    Value* val = (Value*) Get(value, path);
+    if (!val) {
+        return NULL;
+    }
+    switch (val->GetType()) {
+        case kTrueType:
+        case kFalseType:
+            return "BOOL";
+        case kNullType:
+            return "NULL";
+        case kArrayType:
+            return "ARRAY";
+        case kStringType:
+            return "STRING";
+        case kObjectType:
+            return "OBJECT";
+        case kNumberType:
+            return "NUMBER";
+    }
+    return "UNKNOWN";
 }

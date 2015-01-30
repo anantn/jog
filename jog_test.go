@@ -29,8 +29,14 @@ func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
 		case int:
 			var got int
 			if test.path == nil {
+				if obj.Type() != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				}
 				got, err = obj.GetInt()
 			} else {
+				if obj.Type(*(test.path)...) != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				}
 				got, err = obj.GetInt(*(test.path)...)
 			}
 			if err != nil {
@@ -42,8 +48,14 @@ func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
 		case uint:
 			var got uint
 			if test.path == nil {
+				if obj.Type() != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				}
 				got, err = obj.GetUInt()
 			} else {
+				if obj.Type(*(test.path)...) != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				}
 				got, err = obj.GetUInt(*(test.path)...)
 			}
 			if err != nil {
@@ -55,8 +67,14 @@ func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
 		case bool:
 			var got bool
 			if test.path == nil {
+				if obj.Type() != TypeBool {
+					t.Fatalf("Expected TypeBool, got %v\n", obj.Type())
+				}
 				got, err = obj.GetBool()
 			} else {
+				if obj.Type(*(test.path)...) != TypeBool {
+					t.Fatalf("Expected TypeBool, got %v\n", obj.Type(*(test.path)...))
+				}
 				got, err = obj.GetBool(*(test.path)...)
 			}
 			if err != nil {
@@ -68,8 +86,14 @@ func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
 		case float64:
 			var got float64
 			if test.path == nil {
+				if obj.Type() != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				}
 				got, err = obj.GetFloat()
 			} else {
+				if obj.Type(*(test.path)...) != TypeNumber {
+					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				}
 				got, err = obj.GetFloat(*(test.path)...)
 			}
 			if err != nil {
@@ -81,8 +105,14 @@ func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
 		case string:
 			var got string
 			if test.path == nil {
+				if obj.Type() != TypeString {
+					t.Fatalf("Expected TypeString, got %v\n", obj.Type())
+				}
 				got, err = obj.GetString()
 			} else {
+				if obj.Type(*(test.path)...) != TypeString {
+					t.Fatalf("Expected TypeString, got %v\n", obj.Type(*(test.path)...))
+				}
 				got, err = obj.GetString(*(test.path)...)
 			}
 			if err != nil {
@@ -109,6 +139,28 @@ func TestRootObject(t *testing.T) {
 	DoTests(t, GetSample(t), cases)
 }
 
+func TestGetObject(t *testing.T) {
+	o := GetSample(t)
+	obj, err := o.GetObject()
+	if err != nil {
+		t.Fatalf("Expected no errors, got %v\n", err)
+	}
+	if len(obj) != 10 {
+		t.Fatalf("Expected 10 keys in root object, got %d\n", len(obj))
+	}
+	details, _ := o.GetObject("details")
+	if len(details) != 3 {
+		t.Fatalf("Expected 3 keys in details object, got %d\n", len(details))
+	}
+	age, _ := details["age"].GetInt()
+	if age != 36 {
+		t.Fatalf("Expected details/age to be 36, got %d\n", age)
+	}
+	if details["longitude"].Type() != TypeNumber {
+		t.Fatalf("Expected details/longitude to be a number\n")
+	}
+}
+
 func TestNestedObject(t *testing.T) {
 	cases := []TestCase{
 		TestCase{&[]string{"details", "age"}, 36},
@@ -120,11 +172,15 @@ func TestNestedObject(t *testing.T) {
 
 func TestNestedArray(t *testing.T) {
 	obj := GetSample(t)
+
+	if obj.Type("tags") != TypeArray {
+		t.Fatalf("Expected TypeArray, got %v\n", obj.Type("tags"))
+	}
+
 	tags, err := obj.GetArray("tags")
 	if err != nil {
 		t.Fatalf("Couldn't get nested array: %v\n", err)
 	}
-
 	values := []string{"nisi", "sint", "aute", "tempor", "sit", "esse", "in"}
 	if len(values) != len(tags) {
 		t.Fatalf("Got length %d, expected %d\n", len(tags), len(values))
