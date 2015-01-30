@@ -30,12 +30,15 @@ const char*  GetString(void* value, Path* path);
 // Caller must free the array of returned pointers.
 void**       GetArray(void* value, Path* path, size_t* length);
 
-// Caller must free the array of returned pointers, the keys array and each member of the array.
+// Caller must free the array of returned pointers and the keys array.
 void**       GetObject(void* value, Path* path, size_t* length, char*** keys);
 
 // The type of a value is either "BOOL", "NULL", "ARRAY",
 // "STRING", "OBJECT", or "NUMBER".
 const char*  Type(void* value, Path* path);
+
+// Return a stringified version of the value. Caller must free.
+char*  Stringify(void* value, Path* path);
 
 #ifdef __cplusplus
 }

@@ -4,7 +4,9 @@
 #include <stdbool.h>
 
 #include "wrapper.h"
+#include "rapidjson/writer.h"
 #include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
 
@@ -186,9 +188,7 @@ void** GetObject(void* value, Path* path, size_t* length, char*** keys) {
 
     Value::MemberIterator itr = val->MemberBegin();
     for (int i = 0; itr != val->MemberEnd(); i++, itr++) {
-        const char* memberName = itr->name.GetString();
-        names[i] = (char*) malloc(sizeof(char) * strlen(memberName));
-        strcpy(names[i], memberName);
+        names[i] = (char*) itr->name.GetString();
         members[i] = (void*) &(itr->value);
     }
 
@@ -218,4 +218,19 @@ const char* Type(void *value, Path* path) {
             return "NUMBER";
     }
     return "UNKNOWN";
+}
+
+char* Stringify(void *value, Path* path) {
+    Value* val = (Value*) Get(value, path);
+    if (!val) {
+        return NULL;
+    }
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    val->Accept(writer);
+
+    const char* str = buffer.GetString();
+    char* retstr = (char*) malloc(sizeof(char) * (strlen(str) + 1));
+    strcpy(retstr, str);
+    return retstr;
 }

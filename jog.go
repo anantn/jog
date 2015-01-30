@@ -88,7 +88,7 @@ func (j *Jog) Get(path ...string) (*Jog, error) {
 	}
 	childval := C.Get(j.value, pathPtr)
 	if childval == nil {
-		return nil, errors.New(fmt.Sprintf("Could not find a child at %s", strings.Join(path, "/")))
+		return nil, fmt.Errorf("Could not find a child at %s", strings.Join(path, "/"))
 	}
 	return &Jog{nil, childval}, nil
 }
@@ -101,7 +101,7 @@ func (j *Jog) GetInt(path ...string) (int, error) {
 
 	intval, err := C.GetInt(j.value, pathPtr)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Could not find int value at %s", strings.Join(path, "/")))
+		return 0, fmt.Errorf("Could not find int value at %s", strings.Join(path, "/"))
 	}
 	return int(intval), nil
 }
@@ -114,7 +114,7 @@ func (j *Jog) GetUInt(path ...string) (uint, error) {
 
 	uintval, err := C.GetUInt(j.value, pathPtr)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Could not find uint value at %s", strings.Join(path, "/")))
+		return 0, fmt.Errorf("Could not find uint value at %s", strings.Join(path, "/"))
 	}
 	return uint(uintval), nil
 }
@@ -127,7 +127,7 @@ func (j *Jog) GetFloat(path ...string) (float64, error) {
 
 	dval, err := C.GetDouble(j.value, pathPtr)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Could not find float value at %s", strings.Join(path, "/")))
+		return 0, fmt.Errorf("Could not find float value at %s", strings.Join(path, "/"))
 	}
 	return float64(dval), nil
 }
@@ -140,7 +140,7 @@ func (j *Jog) GetBool(path ...string) (bool, error) {
 
 	bval, err := C.GetBool(j.value, pathPtr)
 	if err != nil {
-		return false, errors.New(fmt.Sprintf("Could not find bool value at %s", strings.Join(path, "/")))
+		return false, fmt.Errorf("Could not find bool value at %s", strings.Join(path, "/"))
 	}
 	return bool(bval), nil
 }
@@ -153,7 +153,7 @@ func (j *Jog) GetString(path ...string) (string, error) {
 
 	strval := C.GetString(j.value, pathPtr)
 	if strval == nil {
-		return "", errors.New(fmt.Sprintf("Could not find string value at %s", strings.Join(path, "/")))
+		return "", fmt.Errorf("Could not find string value at %s", strings.Join(path, "/"))
 	}
 	return C.GoString(strval), nil
 }
@@ -168,7 +168,7 @@ func (j *Jog) GetArray(path ...string) ([]*Jog, error) {
 	arrval := C.GetArray(j.value, pathPtr, &arrlen)
 
 	if arrval == nil {
-		return []*Jog{}, errors.New(fmt.Sprintf("Could not find array value at %s", strings.Join(path, "/")))
+		return []*Jog{}, fmt.Errorf("Could not find array value at %s", strings.Join(path, "/"))
 	}
 
 	length := int(arrlen)
@@ -198,7 +198,7 @@ func (j *Jog) GetObject(path ...string) (map[string]*Jog, error) {
 	var memlen C.size_t
 	objval := C.GetObject(j.value, pathPtr, &memlen, &keys)
 	if objval == nil {
-		return nil, errors.New(fmt.Sprintf("Could not find object value at %s", strings.Join(path, "/")))
+		return nil, fmt.Errorf("Could not find object value at %s", strings.Join(path, "/"))
 	}
 
 	length := int(memlen)
@@ -215,7 +215,6 @@ func (j *Jog) GetObject(path ...string) (map[string]*Jog, error) {
 		keyPtr := (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(keys)) + uintptr(i)*charSize))
 		keyVal := C.GoString(*keyPtr)
 		members[keyVal] = &Jog{nil, *ptr}
-		C.free(unsafe.Pointer(*keyPtr))
 	}
 	C.free(unsafe.Pointer(objval))
 	C.free(unsafe.Pointer(keys))
@@ -245,4 +244,19 @@ func (j *Jog) Type(path ...string) Type {
 	}
 
 	return TypeUnknown
+}
+
+func (j *Jog) Stringify(path ...string) (string, error) {
+	pathPtr := convertPath(path)
+	if pathPtr != nil {
+		defer C.free(unsafe.Pointer(pathPtr.keys))
+	}
+
+	strval := C.Stringify(j.value, pathPtr)
+	if strval == nil {
+		return "", fmt.Errorf("Could not stringify value because it's not an object or array (%s)", strings.Join(path, "/"))
+	}
+	ret := C.GoString(strval)
+	C.free(unsafe.Pointer(strval))
+	return ret, nil
 }

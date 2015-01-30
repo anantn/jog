@@ -1,9 +1,10 @@
 package jog
 
 import (
-	"io/ioutil"
 	"testing"
 )
+
+var SAMPLE = `{"index":0,"_id":"54c7fff8e3268528239d9cb1","guid":"b4940c5c-82ee-4f5e-bd02-f847fe2b9fc6","isActive":true,"balance":"$1,750.21","details":{"age":36,"eyeColor":"brown","longitude":102.563977},"registered":"2014-10-12T09:38:08 +07:00","latitude":-59.816976,"tags":["nisi","sint","aute","tempor","sit","esse","in"],"friends":[{"id":0,"name":"Case Gross"},{"id":1,"name":"Gilbert Rasmussen"},{"id":2,"name":"Harris Huff"}]}`
 
 type TestCase struct {
 	path  *[]string
@@ -11,11 +12,7 @@ type TestCase struct {
 }
 
 func GetSample(t *testing.T) *Jog {
-	contents, err := ioutil.ReadFile("test/sample.json")
-	if err != nil {
-		t.Fatalf("Couldn't open sample JSON: %v\n", err)
-	}
-	obj, err := New(string(contents))
+	obj, err := New(SAMPLE)
 	if err != nil {
 		t.Fatalf("Couldn't parse sample JSON: %v\n", err)
 	}
@@ -216,5 +213,20 @@ func TestNestedArrayObject(t *testing.T) {
 	}
 	for i, v := range values {
 		DoTests(t, friends[i], v)
+	}
+}
+
+func TestStringify(t *testing.T) {
+	obj := GetSample(t)
+	val, err := obj.Stringify()
+	if err != nil {
+		t.Fatalf("Did not stringify object correctly: %v\n", err)
+	}
+	if val != SAMPLE {
+		t.Fatalf("Did not stringify object correctly: %v\n", val)
+	}
+	tags, _ := obj.Stringify("tags")
+	if tags != `["nisi","sint","aute","tempor","sit","esse","in"]` {
+		t.Fatalf("Did not stringify array correctly! %#v", tags)
 	}
 }
