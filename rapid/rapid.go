@@ -20,43 +20,6 @@ type rapidValue struct {
 	value unsafe.Pointer
 }
 
-// Finalizer to call the Document destructor.
-func cleanupDocument(j jog.Value) {
-	rapidValue, ok := j.(*rapidValue)
-	if !ok {
-		panic("cleanupDocument called on non rapidValue object!")
-	}
-	C.free(rapidValue.clean)
-	C.DeleteDocument(rapidValue.value)
-}
-
-// Finalizer to call the Array destructor.
-func cleanupArray(a *[]jog.Value) {
-	arr := *a
-	rapidValue, ok := arr[0].(*rapidValue)
-	if !ok {
-		panic("cleanupArray called on non rapidValue object!")
-	}
-	C.free(rapidValue.clean)
-}
-
-// Utility function to convert a Go slice to C struct.
-// Caller must free C.struct_Path.keys!
-func convertPath(path []string) *C.struct_Path {
-	if len(path) == 0 {
-		return nil
-	}
-
-	var c *C.char
-	ptrSize := unsafe.Sizeof(c)
-	ptr := C.malloc(C.size_t(len(path)) * C.size_t(ptrSize))
-	for i := 0; i < len(path); i++ {
-		element := (**C.char)(unsafe.Pointer(uintptr(ptr) + uintptr(i)*ptrSize))
-		*element = C.CString(path[i])
-	}
-	return &C.struct_Path{(**C.char)(ptr), C.size_t(len(path))}
-}
-
 // Constructor by string.
 func New(val string) (jog.Value, error) {
 	var cerr *C.char
@@ -257,4 +220,43 @@ func (j *rapidValue) Stringify(path ...string) (string, error) {
 	ret := C.GoString(strval)
 	C.free(unsafe.Pointer(strval))
 	return ret, nil
+}
+
+// Private methods.
+
+// Finalizer to call the Document destructor.
+func cleanupDocument(j jog.Value) {
+	rapidValue, ok := j.(*rapidValue)
+	if !ok {
+		panic("cleanupDocument called on non rapidValue object!")
+	}
+	C.free(rapidValue.clean)
+	C.DeleteDocument(rapidValue.value)
+}
+
+// Finalizer to call the Array destructor.
+func cleanupArray(a *[]jog.Value) {
+	arr := *a
+	rapidValue, ok := arr[0].(*rapidValue)
+	if !ok {
+		panic("cleanupArray called on non rapidValue object!")
+	}
+	C.free(rapidValue.clean)
+}
+
+// Utility function to convert a Go slice to C struct.
+// Caller must free C.struct_Path.keys!
+func convertPath(path []string) *C.struct_Path {
+	if len(path) == 0 {
+		return nil
+	}
+
+	var c *C.char
+	ptrSize := unsafe.Sizeof(c)
+	ptr := C.malloc(C.size_t(len(path)) * C.size_t(ptrSize))
+	for i := 0; i < len(path); i++ {
+		element := (**C.char)(unsafe.Pointer(uintptr(ptr) + uintptr(i)*ptrSize))
+		*element = C.CString(path[i])
+	}
+	return &C.struct_Path{(**C.char)(ptr), C.size_t(len(path))}
 }
