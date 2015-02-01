@@ -11,7 +11,7 @@ type TestCase struct {
 	value interface{}
 }
 
-func GetSample(t *testing.T) *Jog {
+func GetSample(t *testing.T) Value {
 	obj, err := New(SAMPLE)
 	if err != nil {
 		t.Fatalf("Couldn't parse sample JSON: %v\n", err)
@@ -19,7 +19,7 @@ func GetSample(t *testing.T) *Jog {
 	return obj
 }
 
-func DoTests(t *testing.T, obj *Jog, cases []TestCase) {
+func DoTests(t *testing.T, obj Value, cases []TestCase) {
 	var err error
 	for _, test := range cases {
 		switch val := test.value.(type) {
