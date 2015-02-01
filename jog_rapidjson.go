@@ -2,7 +2,7 @@ package jog
 
 // #include <stdlib.h>
 // #include <stdbool.h>
-// #include "wrapper.h"
+// #include "rapid.h"
 import "C"
 
 import (
