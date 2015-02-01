@@ -1,4 +1,4 @@
-package jog
+package rapid
 
 // #include <stdlib.h>
 // #include <stdbool.h>
@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"unsafe"
+
+	"github.com/anantn/jog"
 )
 
 type rapidValue struct {
@@ -19,7 +21,7 @@ type rapidValue struct {
 }
 
 // Finalizer to call the Document destructor.
-func cleanupDocument(j Value) {
+func cleanupDocument(j jog.Value) {
 	rapidValue, ok := j.(*rapidValue)
 	if !ok {
 		panic("cleanupDocument called on non rapidValue object!")
@@ -29,7 +31,7 @@ func cleanupDocument(j Value) {
 }
 
 // Finalizer to call the Array destructor.
-func cleanupArray(a *[]Value) {
+func cleanupArray(a *[]jog.Value) {
 	arr := *a
 	rapidValue, ok := arr[0].(*rapidValue)
 	if !ok {
@@ -56,7 +58,7 @@ func convertPath(path []string) *C.struct_Path {
 }
 
 // Constructor by string.
-func newRapidValue(val string) (Value, error) {
+func New(val string) (jog.Value, error) {
 	var cerr *C.char
 	cval := C.CString(val)
 	doc := C.NewDocument(cval, &cerr)
@@ -73,7 +75,7 @@ func newRapidValue(val string) (Value, error) {
 }
 
 // Data Getters.
-func (j *rapidValue) Get(path ...string) (Value, error) {
+func (j *rapidValue) Get(path ...string) (jog.Value, error) {
 	if len(path) == 0 {
 		return j, nil
 	}
@@ -154,7 +156,7 @@ func (j *rapidValue) GetString(path ...string) (string, error) {
 	return C.GoString(strval), nil
 }
 
-func (j *rapidValue) GetArray(path ...string) ([]Value, error) {
+func (j *rapidValue) GetArray(path ...string) ([]jog.Value, error) {
 	pathPtr := convertPath(path)
 	if pathPtr != nil {
 		defer C.free(unsafe.Pointer(pathPtr.keys))
@@ -164,18 +166,18 @@ func (j *rapidValue) GetArray(path ...string) ([]Value, error) {
 	arrval := C.GetArray(j.value, pathPtr, &arrlen)
 
 	if arrval == nil {
-		return []Value{}, fmt.Errorf("Could not find array value at %s", strings.Join(path, "/"))
+		return []jog.Value{}, fmt.Errorf("Could not find array value at %s", strings.Join(path, "/"))
 	}
 
 	length := int(arrlen)
 	if length == 0 {
-		return []Value{}, nil
+		return []jog.Value{}, nil
 	}
 
 	var void unsafe.Pointer
 	ptrSize := unsafe.Sizeof(void)
 
-	array := make([]Value, length)
+	array := make([]jog.Value, length)
 	for i := 0; i < length; i++ {
 		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(unsafe.Pointer(arrval)) + uintptr(i)*ptrSize))
 		array[i] = &rapidValue{unsafe.Pointer(arrval), *ptr}
@@ -184,7 +186,7 @@ func (j *rapidValue) GetArray(path ...string) ([]Value, error) {
 	return array, nil
 }
 
-func (j *rapidValue) GetObject(path ...string) (map[string]Value, error) {
+func (j *rapidValue) GetObject(path ...string) (map[string]jog.Value, error) {
 	pathPtr := convertPath(path)
 	if pathPtr != nil {
 		defer C.free(unsafe.Pointer(pathPtr.keys))
@@ -199,13 +201,13 @@ func (j *rapidValue) GetObject(path ...string) (map[string]Value, error) {
 
 	length := int(memlen)
 	if length == 0 {
-		return map[string]Value{}, nil
+		return map[string]jog.Value{}, nil
 	}
 
 	var void unsafe.Pointer
 	ptrSize := unsafe.Sizeof(void)
 	charSize := unsafe.Sizeof(keys)
-	members := make(map[string]Value, length)
+	members := make(map[string]jog.Value, length)
 	for i := 0; i < length; i++ {
 		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(unsafe.Pointer(objval)) + uintptr(i)*ptrSize))
 		keyPtr := (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(keys)) + uintptr(i)*charSize))
@@ -217,7 +219,7 @@ func (j *rapidValue) GetObject(path ...string) (map[string]Value, error) {
 	return members, nil
 }
 
-func (j *rapidValue) Type(path ...string) Type {
+func (j *rapidValue) Type(path ...string) jog.Type {
 	pathPtr := convertPath(path)
 	if pathPtr != nil {
 		defer C.free(unsafe.Pointer(pathPtr.keys))
@@ -226,20 +228,20 @@ func (j *rapidValue) Type(path ...string) Type {
 	ct := C.Type(j.value, pathPtr)
 	switch C.GoString(ct) {
 	case "BOOL":
-		return TypeBool
+		return jog.TypeBool
 	case "NULL":
-		return TypeNull
+		return jog.TypeNull
 	case "ARRAY":
-		return TypeArray
+		return jog.TypeArray
 	case "STRING":
-		return TypeString
+		return jog.TypeString
 	case "OBJECT":
-		return TypeObject
+		return jog.TypeObject
 	case "NUMBER":
-		return TypeNumber
+		return jog.TypeNumber
 	}
 
-	return TypeUnknown
+	return jog.TypeUnknown
 }
 
 func (j *rapidValue) Stringify(path ...string) (string, error) {

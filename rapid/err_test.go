@@ -1,4 +1,4 @@
-package jog
+package rapid
 
 import (
 	"testing"

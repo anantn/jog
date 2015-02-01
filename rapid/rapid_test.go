@@ -1,7 +1,9 @@
-package jog
+package rapid
 
 import (
 	"testing"
+
+	"github.com/anantn/jog"
 )
 
 var SAMPLE = `{"index":0,"_id":"54c7fff8e3268528239d9cb1","guid":"b4940c5c-82ee-4f5e-bd02-f847fe2b9fc6","isActive":true,"balance":"$1,750.21","details":{"age":36,"eyeColor":"brown","longitude":102.563977},"registered":"2014-10-12T09:38:08 +07:00","latitude":-59.816976,"tags":["nisi","sint","aute","tempor","sit","esse","in"],"friends":[{"id":0,"name":"Case Gross"},{"id":1,"name":"Gilbert Rasmussen"},{"id":2,"name":"Harris Huff"}]}`
@@ -11,7 +13,7 @@ type TestCase struct {
 	value interface{}
 }
 
-func GetSample(t *testing.T) Value {
+func GetSample(t *testing.T) jog.Value {
 	obj, err := New(SAMPLE)
 	if err != nil {
 		t.Fatalf("Couldn't parse sample JSON: %v\n", err)
@@ -19,20 +21,20 @@ func GetSample(t *testing.T) Value {
 	return obj
 }
 
-func DoTests(t *testing.T, obj Value, cases []TestCase) {
+func DoTests(t *testing.T, obj jog.Value, cases []TestCase) {
 	var err error
 	for _, test := range cases {
 		switch val := test.value.(type) {
 		case int:
 			var got int
 			if test.path == nil {
-				if obj.Type() != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				if obj.Type() != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type())
 				}
 				got, err = obj.GetInt()
 			} else {
-				if obj.Type(*(test.path)...) != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				if obj.Type(*(test.path)...) != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type(*(test.path)...))
 				}
 				got, err = obj.GetInt(*(test.path)...)
 			}
@@ -45,13 +47,13 @@ func DoTests(t *testing.T, obj Value, cases []TestCase) {
 		case uint:
 			var got uint
 			if test.path == nil {
-				if obj.Type() != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				if obj.Type() != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type())
 				}
 				got, err = obj.GetUInt()
 			} else {
-				if obj.Type(*(test.path)...) != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				if obj.Type(*(test.path)...) != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type(*(test.path)...))
 				}
 				got, err = obj.GetUInt(*(test.path)...)
 			}
@@ -64,13 +66,13 @@ func DoTests(t *testing.T, obj Value, cases []TestCase) {
 		case bool:
 			var got bool
 			if test.path == nil {
-				if obj.Type() != TypeBool {
-					t.Fatalf("Expected TypeBool, got %v\n", obj.Type())
+				if obj.Type() != jog.TypeBool {
+					t.Fatalf("Expected jog.TypeBool, got %v\n", obj.Type())
 				}
 				got, err = obj.GetBool()
 			} else {
-				if obj.Type(*(test.path)...) != TypeBool {
-					t.Fatalf("Expected TypeBool, got %v\n", obj.Type(*(test.path)...))
+				if obj.Type(*(test.path)...) != jog.TypeBool {
+					t.Fatalf("Expected jog.TypeBool, got %v\n", obj.Type(*(test.path)...))
 				}
 				got, err = obj.GetBool(*(test.path)...)
 			}
@@ -83,13 +85,13 @@ func DoTests(t *testing.T, obj Value, cases []TestCase) {
 		case float64:
 			var got float64
 			if test.path == nil {
-				if obj.Type() != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type())
+				if obj.Type() != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type())
 				}
 				got, err = obj.GetFloat()
 			} else {
-				if obj.Type(*(test.path)...) != TypeNumber {
-					t.Fatalf("Expected TypeNumber, got %v\n", obj.Type(*(test.path)...))
+				if obj.Type(*(test.path)...) != jog.TypeNumber {
+					t.Fatalf("Expected jog.TypeNumber, got %v\n", obj.Type(*(test.path)...))
 				}
 				got, err = obj.GetFloat(*(test.path)...)
 			}
@@ -102,13 +104,13 @@ func DoTests(t *testing.T, obj Value, cases []TestCase) {
 		case string:
 			var got string
 			if test.path == nil {
-				if obj.Type() != TypeString {
-					t.Fatalf("Expected TypeString, got %v\n", obj.Type())
+				if obj.Type() != jog.TypeString {
+					t.Fatalf("Expected jog.TypeString, got %v\n", obj.Type())
 				}
 				got, err = obj.GetString()
 			} else {
-				if obj.Type(*(test.path)...) != TypeString {
-					t.Fatalf("Expected TypeString, got %v\n", obj.Type(*(test.path)...))
+				if obj.Type(*(test.path)...) != jog.TypeString {
+					t.Fatalf("Expected jog.TypeString, got %v\n", obj.Type(*(test.path)...))
 				}
 				got, err = obj.GetString(*(test.path)...)
 			}
@@ -153,7 +155,7 @@ func TestGetObject(t *testing.T) {
 	if age != 36 {
 		t.Fatalf("Expected details/age to be 36, got %d\n", age)
 	}
-	if details["longitude"].Type() != TypeNumber {
+	if details["longitude"].Type() != jog.TypeNumber {
 		t.Fatalf("Expected details/longitude to be a number\n")
 	}
 }
@@ -170,8 +172,8 @@ func TestNestedObject(t *testing.T) {
 func TestNestedArray(t *testing.T) {
 	obj := GetSample(t)
 
-	if obj.Type("tags") != TypeArray {
-		t.Fatalf("Expected TypeArray, got %v\n", obj.Type("tags"))
+	if obj.Type("tags") != jog.TypeArray {
+		t.Fatalf("Expected jog.TypeArray, got %v\n", obj.Type("tags"))
 	}
 
 	tags, err := obj.GetArray("tags")

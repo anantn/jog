@@ -28,7 +28,3 @@ const (
 	TypeObject
 	TypeUnknown
 )
-
-func New(val string) (Value, error) {
-	return newRapidValue(val)
-}

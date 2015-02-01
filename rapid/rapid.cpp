@@ -4,9 +4,9 @@
 #include <stdbool.h>
 
 #include "rapid.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
+#include "writer.h"
+#include "document.h"
+#include "stringbuffer.h"
 
 using namespace rapidjson;
 
